@@ -1,9 +1,7 @@
 import unittest
 
-from env import set_current
+from tdx.g.ENV import set_current
 from tdx.barslast import barslast
-from tdx.index import get_macd
-from tdx.ref import REF
 
 
 class Barslast_Test(unittest.TestCase):

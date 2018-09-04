@@ -1,16 +1,14 @@
-from env import ENV
-from stockerror import StockError
 # 通达信指标
-from tdx.index import *
 # 装饰器
-from tdx.tdx_decorator import *
 from tdx.index import *
+from tdx.tdx_decorator import *
 
 
 @use_ref
-@check
 def BARSLAST(func):
-    count = 0
+    # 如果当天func成立，理论上返回0，但是这里不允许返回0，所以直接ref+1
+    g.ENV.ref += 1
+    count = 1
     if callable(func):
         while True:
             if func():
@@ -18,7 +16,7 @@ def BARSLAST(func):
             else:
                 # 如果最初ref>0，那么count不与ref等同，需要单独计量
                 count += 1
-                ENV.ref += 1
+                g.ENV.ref += 1
     elif isinstance(func, str):
         while True:
             if eval(func):
@@ -26,35 +24,34 @@ def BARSLAST(func):
             else:
                 # 如果最初ref>0，那么count不与ref等同，需要单独计量
                 count += 1
-                ENV.ref += 1
+                g.ENV.ref += 1
     else:
         raise StockError("param not func or str")
 
 
 @use_ref
-@check
 def HHV(func, n):
     arr = []
     for i in range(n):
-        ENV.ref = ENV.ref + i
-        arr.append(func())
+        g.ENV.ref = g.ENV.ref + 1
+        high = func()
+        arr.append(high)
     result = max(arr)
     return result
 
 
 @use_ref
-@check
 def LLV(func, n):
     arr = []
     for i in range(n):
-        ENV.ref = ENV.ref + i
-        arr.append(func())
+        g.ENV.ref = g.ENV.ref + 1
+        low = func()
+        arr.append(low)
     result = min(arr)
     return result
 
 
 @use_ref
-@check
 def REF(func, n):
     """
     tdx_ref(get_macd()<0,1)这样使用不可行：
@@ -64,7 +61,7 @@ def REF(func, n):
     :param n:
     :return:
     """
-    ENV.ref += n
+    g.ENV.ref += n
     if callable(func):
         result = func()
         return result
@@ -77,10 +74,57 @@ def REF(func, n):
 
 
 @use_ref
-@check
 def SUM(func, n):
     result = 0
     for i in range(n):
         result += func()
-        ENV.ref += 1
+        g.ENV.ref += 1
     return result
+
+
+@use_ref
+def FINDLOW(func, n, m, index):
+    if index < 1 or not isinstance(index, int):
+        raise ValueError("index必须是大于0的整数")
+    if n < 0 or not isinstance(n, int):
+        raise ValueError("n必须是>=0的整数")
+    if m < 0 or not isinstance(n, int):
+        raise ValueError("m必须是>=0的整数")
+    g.ENV.ref += n
+    map = {}
+    for i in range(m):
+        map[g.ENV.ref] = func()
+        g.ENV.ref += 1
+    # 降序reverse=True
+    arr_sorted = [(k, map[k]) for k in sorted(map, key=map.get)]
+    try:
+        return arr_sorted[index - 1]
+    except IndexError as e:
+        logger.error()
+
+
+@use_ref
+def FINDHIGH(func, n, m, index):
+    if index < 1 or not isinstance(index, int):
+        raise ValueError("index必须是大于0的整数")
+    if n < 0 or not isinstance(n, int):
+        raise ValueError("n必须是>=0的整数")
+    if m < 0 or not isinstance(n, int):
+        raise ValueError("m必须是>=0的整数")
+    g.ENV.ref += n
+    map = {}
+    for i in range(m):
+        map[g.ENV.ref] = func()
+        g.ENV.ref += 1
+    # 降序reverse=True
+    arr_sorted = [(k, map[k]) for k in sorted(map, key=map.get, reverse=True)]
+    return arr_sorted[index - 1]
+
+
+@use_ref
+def CROSS(get_index1, get_index2):
+    if get_index1 == get_index2:
+        raise ValueError("cross的两个参数不能相同")
+    if get_index1() > get_index2() and REF(get_index1, 1) < REF(get_index2, 1):
+        return True
+    return False

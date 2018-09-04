@@ -1,0 +1,2 @@
+2018-08-27 00:14:01,102 - mongodb.py[line:31] - INFO: 表k_data_30_INDEX建立联合唯一索引: [('code', -1), ('datetime', -1)]
+2018-08-27 00:14:01,105 - mongodb.py[line:31] - INFO: 表k_data_day_INDEX建立联合唯一索引: [('code', -1), ('datetime', -1)]
